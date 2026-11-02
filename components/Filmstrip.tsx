@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import {
+  useEffect,
   useRef,
   type KeyboardEvent,
   type MouseEvent,
@@ -21,6 +22,22 @@ export function Filmstrip({ images, label }: FilmstripProps) {
   const drag = useRef<DragState | null>(null);
   const moved = useRef(false);
 
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    const update = () => {
+      const scrollable = track.scrollWidth > track.clientWidth + 1;
+      track.tabIndex = scrollable ? 0 : -1;
+      track.dataset.scrollable = scrollable ? "true" : "false";
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(track);
+    return () => observer.disconnect();
+  }, [images.length]);
+
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
     if (event.pointerType !== "mouse") return;
 
@@ -38,7 +55,9 @@ export function Filmstrip({ images, label }: FilmstripProps) {
     if (!track || !state) return;
 
     const delta = event.clientX - state.startX;
-    if (Math.abs(delta) > DRAG_THRESHOLD) moved.current = true;
+    if (Math.abs(delta) <= DRAG_THRESHOLD) return;
+
+    moved.current = true;
     track.scrollLeft = state.startScroll - delta;
   }
 
@@ -75,19 +94,18 @@ export function Filmstrip({ images, label }: FilmstripProps) {
   }
 
   return (
-    <div className="relative [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
+    <div className="relative -m-2 p-2 [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
       <div
         ref={trackRef}
-        role="group"
+        role="region"
         aria-label={`${label} screenshots`}
-        tabIndex={0}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerEnd}
         onPointerCancel={onPointerEnd}
         onClickCapture={onClickCapture}
         onKeyDown={onKeyDown}
-        className="flex cursor-grab gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden active:cursor-grabbing focus-visible:outline-offset-4"
+        className="flex gap-4 overflow-x-auto pb-2 [scrollbar-width:none] data-[scrollable=true]:cursor-grab data-[scrollable=true]:active:cursor-grabbing [&::-webkit-scrollbar]:hidden"
       >
         {images.map((image, index) => (
           <Image
@@ -95,8 +113,13 @@ export function Filmstrip({ images, label }: FilmstripProps) {
             src={image.src}
             alt={image.alt}
             draggable={false}
-            sizes="(min-width: 1024px) 28vw, (min-width: 640px) 50vw, 85vw"
-            className="aspect-[4/3] w-[85%] shrink-0 select-none rounded-lg border border-line object-cover sm:w-[58%] lg:w-[50%]"
+            className={`shrink-0 select-none rounded-lg border border-line object-cover ${
+              image.wide ? "aspect-[2/1]" : "aspect-[4/3]"
+            } ${
+              images.length === 1
+                ? "w-full"
+                : "w-[85%] sm:w-[55%] lg:w-[44%]"
+            }`}
           />
         ))}
       </div>

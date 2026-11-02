@@ -8,7 +8,7 @@ import tttWelcome from "@/app/assets/images/tictactoang/welcome.webp";
 import tttBoard from "@/app/assets/images/tictactoang/board.webp";
 import tttAdmin from "@/app/assets/images/tictactoang/admin.webp";
 
-export type ProjectImage = { src: StaticImageData; alt: string };
+export type ProjectImage = { src: StaticImageData; alt: string; wide?: boolean };
 
 export const projectImages: Record<string, ProjectImage[]> = {
   "syntax-scalpel": [
@@ -33,6 +33,7 @@ export const projectImages: Record<string, ProjectImage[]> = {
     {
       src: tttAdmin,
       alt: "TicTacToang admin dashboard showing total and premium players, active rooms, total matches, and monthly revenue",
+      wide: true,
     },
   ],
   "event-manager": [
