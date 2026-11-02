@@ -15,22 +15,33 @@ type FilmstripProps = { images: ProjectImage[]; label: string };
 type DragState = { startX: number; startScroll: number };
 
 const DRAG_THRESHOLD = 6;
-const ITEM_GAP = 16;
+const COPIES = 4;
+const KEYBOARD_SETTLE_MS = 600;
 
-function setWidthOf(track: HTMLDivElement, count: number) {
+function periodOf(track: HTMLDivElement, count: number) {
   const first = track.children[0] as HTMLElement | undefined;
-  const middle = track.children[count] as HTMLElement | undefined;
-  if (!first || !middle) return 0;
-  return middle.offsetLeft - first.offsetLeft;
+  const next = track.children[count] as HTMLElement | undefined;
+  if (!first || !next) return 0;
+  return next.offsetLeft - first.offsetLeft;
+}
+
+function wrapInto(value: number, period: number) {
+  if (period <= 0) return value;
+  return period + ((((value - period) % period) + period) % period);
 }
 
 export function Filmstrip({ images, label }: FilmstripProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const drag = useRef<DragState | null>(null);
   const moved = useRef(false);
+  const settleUntil = useRef(0);
+  const settleTimer = useRef<number | undefined>(undefined);
+  const pending = useRef<number | null>(null);
 
   const loops = images.length >= 2;
-  const slides = loops ? [...images, ...images, ...images] : images;
+  const slides = loops
+    ? Array.from({ length: COPIES }, () => images).flat()
+    : images;
 
   useEffect(() => {
     const track = trackRef.current;
@@ -42,33 +53,49 @@ export function Filmstrip({ images, label }: FilmstripProps) {
       return;
     }
 
-    const home = () => {
-      const width = setWidthOf(track, images.length);
-      if (width > 0) track.scrollLeft = width;
+    const place = (home: boolean) => {
+      const period = periodOf(track, images.length);
+      if (period <= 0) return;
+
+      if (home) {
+        track.scrollLeft = period;
+        return;
+      }
+
+      track.scrollLeft = wrapInto(track.scrollLeft, period);
     };
 
-    home();
+    place(true);
     track.tabIndex = 0;
     track.dataset.scrollable = "true";
 
-    const observer = new ResizeObserver(home);
+    const observer = new ResizeObserver(() => place(false));
     observer.observe(track);
     return () => observer.disconnect();
   }, [loops, images.length]);
 
+  useEffect(() => {
+    return () => {
+      if (settleTimer.current !== undefined) {
+        window.clearTimeout(settleTimer.current);
+      }
+    };
+  }, []);
+
   function normalize() {
     const track = trackRef.current;
     if (!track || !loops) return;
+    // A smooth keyboard scroll must be allowed to finish; re-wrap afterwards.
+    if (Date.now() < settleUntil.current) return;
 
-    const width = setWidthOf(track, images.length);
-    if (width <= 0) return;
+    const period = periodOf(track, images.length);
+    if (period <= 0) return;
 
-    let shift = 0;
-    if (track.scrollLeft < width * 0.5) shift = width;
-    else if (track.scrollLeft > width * 1.5) shift = -width;
-    if (shift === 0) return;
+    const wrapped = wrapInto(track.scrollLeft, period);
+    if (Math.abs(wrapped - track.scrollLeft) < 1) return;
 
-    track.scrollLeft += shift;
+    const shift = wrapped - track.scrollLeft;
+    track.scrollLeft = wrapped;
     if (drag.current) drag.current.startScroll += shift;
   }
 
@@ -79,6 +106,7 @@ export function Filmstrip({ images, label }: FilmstripProps) {
     if (!track) return;
 
     moved.current = false;
+    pending.current = null;
     drag.current = { startX: event.clientX, startScroll: track.scrollLeft };
     track.setPointerCapture(event.pointerId);
   }
@@ -92,8 +120,20 @@ export function Filmstrip({ images, label }: FilmstripProps) {
     if (Math.abs(delta) <= DRAG_THRESHOLD) return;
 
     moved.current = true;
-    track.scrollLeft = state.startScroll - delta;
-    normalize();
+
+    const raw = state.startScroll - delta;
+    const period = periodOf(track, images.length);
+
+    if (period <= 0) {
+      track.scrollLeft = raw;
+      return;
+    }
+
+    // Wrap arithmetically: scrollLeft clamps at the scroller's limits, which
+    // would silently discard travel during a fast flick.
+    const wrapped = wrapInto(raw, period);
+    state.startScroll += wrapped - raw;
+    track.scrollLeft = wrapped;
   }
 
   function onPointerEnd(event: PointerEvent<HTMLDivElement>) {
@@ -118,14 +158,42 @@ export function Filmstrip({ images, label }: FilmstripProps) {
     if (!track) return;
 
     const first = track.children[0] as HTMLElement | undefined;
-    const step = first ? first.offsetWidth + ITEM_GAP : 320;
+    const second = track.children[1] as HTMLElement | undefined;
+    const step = first && second ? second.offsetLeft - first.offsetLeft : 320;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const direction = event.key === "ArrowRight" ? 1 : -1;
 
-    track.scrollBy({
-      left: event.key === "ArrowRight" ? step : -step,
-      behavior: reduced ? "auto" : "smooth",
-    });
+    // Track a virtual target so a held key accumulates steps even while the
+    // scroller is still animating. Reading live scrollLeft would drop steps.
+    if (pending.current === null) pending.current = track.scrollLeft;
+    let target = pending.current + direction * step;
+
+    const period = periodOf(track, images.length);
+    if (period > 0) {
+      const wrapped = wrapInto(target, period);
+      if (wrapped !== target) {
+        // Jump an equivalent position first so the animation never clamps.
+        const shift = wrapped - target;
+        track.scrollLeft += shift;
+        pending.current += shift;
+        target = wrapped;
+      }
+    }
+
+    pending.current = target;
+    settleUntil.current = Date.now() + KEYBOARD_SETTLE_MS;
+
+    track.scrollTo({ left: target, behavior: reduced ? "auto" : "smooth" });
     event.preventDefault();
+
+    if (settleTimer.current !== undefined) {
+      window.clearTimeout(settleTimer.current);
+    }
+    settleTimer.current = window.setTimeout(() => {
+      settleUntil.current = 0;
+      pending.current = null;
+      normalize();
+    }, KEYBOARD_SETTLE_MS + 20);
   }
 
   return (
@@ -135,6 +203,9 @@ export function Filmstrip({ images, label }: FilmstripProps) {
         role="region"
         aria-label={`${label} screenshots`}
         onScroll={normalize}
+        onWheel={() => {
+          pending.current = null;
+        }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerEnd}
@@ -145,7 +216,8 @@ export function Filmstrip({ images, label }: FilmstripProps) {
       >
         {slides.map((image, index) => {
           const clone =
-            loops && (index < images.length || index >= images.length * 2);
+            loops &&
+            (index < images.length || index >= images.length * 2);
 
           return (
             <Image
