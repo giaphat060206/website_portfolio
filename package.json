@@ -8,6 +8,10 @@
     "start": "next start",
     "lint": "eslint"
   },
+  "allowScripts": {
+    "esbuild": true,
+    "sharp": true
+  },
   "dependencies": {
     "next": "16.4.4",
     "react": "19.3.0",
