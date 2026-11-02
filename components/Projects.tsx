@@ -7,12 +7,13 @@ import { ProjectCard } from "@/components/ProjectCard";
 export function Projects() {
   return (
     <Section id="projects" kicker="03" title="Selected Projects">
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="flex flex-col">
         {cv.projects.map((project, index) => (
-          <Reveal key={project.slug} delay={index * 60}>
+          <Reveal key={project.slug}>
             <ProjectCard
               project={project}
               images={projectImages[project.slug]}
+              index={index}
             />
           </Reveal>
         ))}
