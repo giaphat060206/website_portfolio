@@ -8,11 +8,8 @@
     "start": "next start",
     "lint": "eslint"
   },
-  "allowScripts": {
-    "esbuild": true,
-    "sharp": true
-  },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "next": "16.4.4",
     "react": "19.3.0",
     "react-dom": "19.3.0"
