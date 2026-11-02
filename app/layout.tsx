@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: "Nguyen Don Gia Phat — Software Engineer",
   description:
-    "Software engineering student at RMIT Vietnam building secure full-stack web and mobile applications.",
+    "Software engineering student at building secure full-stack web applications.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

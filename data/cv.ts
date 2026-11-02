@@ -43,10 +43,10 @@ export const cv: Cv = {
   role: "Software Engineering Student · RMIT Vietnam",
   location: "Ho Chi Minh City, Vietnam",
   intro:
-    "I'm a software engineering student at RMIT Vietnam building secure full-stack web and mobile applications. I care about parsers, backend infrastructure, and interfaces that stay out of the way.",
+    "I'm a software engineering student building secure full-stack web and mobile applications. I care about parsers, backend infrastructure, and interfaces that stay out of the way.",
   award: "1st Place — RMIT Hack-A-Venture 2025",
   summary:
-    "I'm in my second year of a Bachelor of Software Engineering (Honours) at RMIT, working across TypeScript, Rust, Python, and Java. Most of what I build starts with a question about how something works internally — a parser, a dependency graph, a socket layer — and ends as a working tool I can hand to someone else. I'm looking for an internship or junior role where I can ship production code and learn from people who have done it longer.",
+    "I'm in my third year of a Bachelor of Software Engineering (Honours) at RMIT, working across TypeScript, Rust, Python, and Java. Most of what I build starts with a question about how something works internally and ends as a working tool I can hand to someone else. I'm looking for an internship or junior role where I can ship production code and learn from people who have done it longer.",
   languages: "Vietnamese — native · English — fluent (IELTS 7.5)",
   links: {
     email: "giaphat060206@gmail.com",
