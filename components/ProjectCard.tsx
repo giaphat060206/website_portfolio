@@ -1,40 +1,24 @@
-import Image from "next/image";
 import type { Project } from "@/data/cv";
 import type { ProjectImage } from "@/data/projectImages";
+import { Filmstrip } from "@/components/Filmstrip";
 
-type ProjectCardProps = { project: Project; images?: ProjectImage[] };
+type ProjectCardProps = {
+  project: Project;
+  images?: ProjectImage[];
+  index: number;
+};
 
-export function ProjectCard({ project, images }: ProjectCardProps) {
+export function ProjectCard({ project, images, index }: ProjectCardProps) {
   return (
-    <article className="overflow-hidden rounded-lg border border-line bg-surface transition-colors hover:border-accent/40">
-      {images && images.length > 0 ? (
-        <div
-          className={`grid gap-px bg-line ${
-            images.length === 1 ? "grid-cols-1" : "grid-cols-2"
-          }`}
-        >
-          {images.map((image, index) => {
-            const spansBoth =
-              images.length > 1 &&
-              images.length % 2 === 1 &&
-              index === images.length - 1;
-
-            return (
-              <Image
-                key={index}
-                src={image.src}
-                alt={image.alt}
-                sizes="(min-width: 1024px) 25vw, 50vw"
-                className={`w-full object-cover ${
-                  spansBoth ? "col-span-2 aspect-[2/1]" : "aspect-[4/3]"
-                }`}
-              />
-            );
-          })}
-        </div>
-      ) : null}
-      <div className="p-6">
-        <h3 className="font-display text-2xl text-ink">{project.title}</h3>
+    <article
+      id={project.slug}
+      className="grid gap-8 border-t border-line py-14 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-12 md:py-20"
+    >
+      <div>
+        <p className="font-mono text-xs uppercase tracking-widest text-ink-faint">
+          {String(index + 1).padStart(2, "0")}
+        </p>
+        <h3 className="mt-3 font-display text-3xl text-ink">{project.title}</h3>
         <p className="mt-1 font-mono text-xs uppercase tracking-widest text-ink-faint">
           {project.role}
         </p>
@@ -74,6 +58,12 @@ export function ProjectCard({ project, images }: ProjectCardProps) {
           ) : null}
         </div>
       </div>
+
+      {images && images.length > 0 ? (
+        <div className="min-w-0 md:self-center">
+          <Filmstrip images={images} label={project.title} />
+        </div>
+      ) : null}
     </article>
   );
 }
