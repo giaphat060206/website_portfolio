@@ -18,7 +18,12 @@ const instrumentSerif = Instrument_Serif({
   weight: "400",
 });
 
+const siteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Nguyen Don Gia Phat — Software Engineer",
   description:
     "Software engineering student at RMIT Vietnam building secure full-stack web and mobile applications.",
