@@ -9,15 +9,15 @@ import adminMap from "@/app/assets/images/hack-a-venture 2025/admin-map.webp";
 const gallery = [
   {
     src: champion,
-    alt: "Team on stage after taking first place at Hack-A-Venture 2025",
+    alt: "Hack-A-Venture 2025 champion announcement graphic featuring the team",
   },
   {
     src: interview,
-    alt: "Interview with the winning team at Hack-A-Venture 2025",
+    alt: "Interview with Phát, captioned Hack-A-Venture 2025 champion",
   },
   {
     src: photoReport,
-    alt: "Photo report from the Hack-A-Venture 2025 event",
+    alt: "Mobile Report Flooding form showing an uploaded photo, coordinates, and an estimated water depth of 10 to 15 cm",
   },
   {
     src: adminMap,
@@ -60,14 +60,14 @@ export function Education() {
         <p className="font-mono text-xs uppercase tracking-widest text-ink-faint">
           Hack-A-Venture 2025 · 1st of 100+ teams
         </p>
-        <div className="mt-4 flex gap-3 overflow-x-auto sm:grid sm:grid-cols-4 sm:overflow-visible">
+        <div className="mt-4 flex gap-3 overflow-x-auto sm:grid sm:grid-cols-2 sm:overflow-visible">
           {gallery.map((image) => (
             <Image
               key={image.alt}
               src={image.src}
               alt={image.alt}
               sizes="(min-width: 640px) 25vw, 50vw"
-              className="h-32 w-48 shrink-0 rounded-md border border-line object-cover sm:h-auto sm:w-full"
+              className="aspect-[4/3] h-32 w-48 shrink-0 rounded-md border border-line object-cover sm:h-auto sm:w-full"
             />
           ))}
         </div>

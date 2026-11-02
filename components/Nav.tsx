@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { cv } from "@/data/cv";
 
 const INTENT_LOCK_MS = 600;
+const LAST_ID = cv.nav[cv.nav.length - 1].id;
 
 export function Nav() {
   const [activeId, setActiveId] = useState<string>(cv.nav[0].id);
   const lockUntil = useRef(0);
   const listRef = useRef<HTMLUListElement>(null);
+  const syncRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     const sections = cv.nav
@@ -18,6 +20,29 @@ export function Nav() {
     if (sections.length === 0) return;
 
     const isLocked = () => Date.now() < lockUntil.current;
+
+    const sync = () => {
+      if (isLocked()) return;
+
+      const atBottom =
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 2;
+      if (atBottom) {
+        setActiveId(LAST_ID);
+        return;
+      }
+
+      const line = window.innerHeight * 0.3;
+      for (const section of sections) {
+        const rect = section.getBoundingClientRect();
+        if (rect.top <= line && rect.bottom > line) {
+          setActiveId(section.id);
+          return;
+        }
+      }
+    };
+
+    syncRef.current = sync;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -31,24 +56,24 @@ export function Nav() {
 
     for (const section of sections) observer.observe(section);
 
-    let frame = 0;
+    const frame = requestAnimationFrame(sync);
+
+    let scrollFrame = 0;
     const onScroll = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        if (isLocked()) return;
-        const atBottom =
-          window.innerHeight + window.scrollY >=
-          document.documentElement.scrollHeight - 2;
-        if (atBottom) setActiveId(cv.nav[cv.nav.length - 1].id);
-      });
+      cancelAnimationFrame(scrollFrame);
+      scrollFrame = requestAnimationFrame(sync);
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
 
     return () => {
       observer.disconnect();
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
       cancelAnimationFrame(frame);
+      cancelAnimationFrame(scrollFrame);
+      syncRef.current = () => {};
     };
   }, []);
 
@@ -58,8 +83,13 @@ export function Nav() {
     if (!list || !active) return;
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const listRect = list.getBoundingClientRect();
+    const activeRect = active.getBoundingClientRect();
+    const delta =
+      activeRect.left - listRect.left - list.clientWidth / 2 + activeRect.width / 2;
+
     list.scrollTo({
-      left: active.offsetLeft - list.clientWidth / 2 + active.clientWidth / 2,
+      left: list.scrollLeft + delta,
       behavior: reduced ? "auto" : "smooth",
     });
   }, [activeId]);
@@ -76,7 +106,7 @@ export function Nav() {
         <nav aria-label="Sections" className="ml-auto min-w-0 sm:ml-0">
           <ul
             ref={listRef}
-            className="flex gap-1 overflow-x-auto whitespace-nowrap [scrollbar-width:none] sm:overflow-visible"
+            className="flex gap-1 overflow-x-auto whitespace-nowrap py-1 [scrollbar-width:none] sm:overflow-visible"
           >
             {cv.nav.map((item) => {
               const active = item.id === activeId;
@@ -84,10 +114,11 @@ export function Nav() {
                 <li key={item.id} data-id={item.id} className="shrink-0">
                   <a
                     href={`#${item.id}`}
-                    aria-current={active ? "true" : undefined}
+                    aria-current={active ? "location" : undefined}
                     onClick={() => {
                       lockUntil.current = Date.now() + INTENT_LOCK_MS;
                       setActiveId(item.id);
+                      window.setTimeout(() => syncRef.current(), INTENT_LOCK_MS + 20);
                     }}
                     className={`relative inline-block px-3 py-2 font-mono text-xs uppercase tracking-widest transition-colors ${
                       active

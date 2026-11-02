@@ -8,7 +8,11 @@ export function ProjectCard({ project, images }: ProjectCardProps) {
   return (
     <article className="overflow-hidden rounded-lg border border-line bg-surface transition-colors hover:border-accent/40">
       {images && images.length > 0 ? (
-        <div className="grid grid-cols-2 gap-px bg-line">
+        <div
+          className={`grid gap-px bg-line ${
+            images.length === 1 ? "grid-cols-1" : "grid-cols-2"
+          }`}
+        >
           {images.map((image, index) => (
             <Image
               key={index}

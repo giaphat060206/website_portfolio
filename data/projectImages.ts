@@ -13,11 +13,11 @@ export const projectImages: Record<string, ProjectImage[]> = {
   "syntax-scalpel": [
     {
       src: ssTitle,
-      alt: "SyntaxScalpel showing a parsed TypeScript repository as an interactive dependency graph",
+      alt: "SyntaxScalpel welcome screen previewing a dependency graph of a mixed Rust and TypeScript project",
     },
     {
       src: ssGraph,
-      alt: "SyntaxScalpel function-level call graph rendered on a React Flow canvas",
+      alt: "SyntaxScalpel file and folder dependency graph of a Python codebase",
     },
   ],
   tictactoang: [
@@ -27,7 +27,7 @@ export const projectImages: Record<string, ProjectImage[]> = {
     },
     {
       src: tttBoard,
-      alt: "TicTacToang Gomoku board during an online multiplayer match",
+      alt: "TicTacToang Gomoku board during a single-player match against the medium bot",
     },
   ],
   "event-manager": [
@@ -37,7 +37,7 @@ export const projectImages: Record<string, ProjectImage[]> = {
     },
     {
       src: emTickets,
-      alt: "Event Manager ticket management screen backed by PostgreSQL",
+      alt: "Event Manager ticket management screen",
     },
   ],
   "smart-path-finder": [
