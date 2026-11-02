@@ -13,15 +13,24 @@ export function ProjectCard({ project, images }: ProjectCardProps) {
             images.length === 1 ? "grid-cols-1" : "grid-cols-2"
           }`}
         >
-          {images.map((image, index) => (
-            <Image
-              key={index}
-              src={image.src}
-              alt={image.alt}
-              sizes="(min-width: 1024px) 25vw, 50vw"
-              className="aspect-[4/3] w-full object-cover"
-            />
-          ))}
+          {images.map((image, index) => {
+            const spansBoth =
+              images.length > 1 &&
+              images.length % 2 === 1 &&
+              index === images.length - 1;
+
+            return (
+              <Image
+                key={index}
+                src={image.src}
+                alt={image.alt}
+                sizes="(min-width: 1024px) 25vw, 50vw"
+                className={`w-full object-cover ${
+                  spansBoth ? "col-span-2 aspect-[2/1]" : "aspect-[4/3]"
+                }`}
+              />
+            );
+          })}
         </div>
       ) : null}
       <div className="p-6">

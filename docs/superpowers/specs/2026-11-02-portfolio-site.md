@@ -84,7 +84,7 @@ import.
 | `syntax-scalpel/title.png`, `syntax-scalpel/graph.png` | SyntaxScalpel card |
 | `event-manager/event-management.png`, `event-manager/ticket-management.png` | Event Manager card |
 | `pathfinder/main.png` | Smart Path Finder card |
-| `tictactoang/welcome.png`, `tictactoang/board.png` | TicTacToang card |
+| `tictactoang/welcome.png`, `tictactoang/board.png`, `tictactoang/admin.png` | TicTacToang card |
 | `hack-a-venture 2025/champion.jpg`, `interview.png`, `photo-report.jpg`, `admin-map.jpg` | Education award gallery |
 
 Every image carries explicit `width`/`height` and descriptive `alt` text. Decorative
@@ -150,7 +150,7 @@ row, `Source` link, and `Live` when present.
    - Tags: `React`, `Socket.IO`, `Express`, `MongoDB`, `Tailwind`
    - Source: `https://github.com/RMIT-Full-Stack-Development-2026A/Group1`
    - Live: `https://tictactoang.vercel.app`
-   - Images: `tictactoang/welcome.png` (primary), `tictactoang/board.png`
+   - Images: `tictactoang/welcome.png` (primary), `tictactoang/board.png`, `tictactoang/admin.png` (full-width third tile)
 
 3. **Event Manager** — Team Lead, Frontend, Backend & DB
    - `Developed a full-featured event management system with a graphical interface and a relational database backend using Java, JavaFX, and PostgreSQL.`
