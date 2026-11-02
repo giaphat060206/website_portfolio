@@ -31,6 +31,7 @@ export function useLightbox() {
 const MAX_RATIO = 0.92;
 const DURATION = 300;
 const EASING = "cubic-bezier(0.2, 0.8, 0.2, 1)";
+const TRANSITION = `top ${DURATION}ms ${EASING}, left ${DURATION}ms ${EASING}, width ${DURATION}ms ${EASING}, height ${DURATION}ms ${EASING}`;
 
 function prefersReducedMotion() {
   return (
@@ -65,16 +66,32 @@ export function LightboxProvider({ children }: { children: ReactNode }) {
   );
 
   const close = useCallback(() => {
+    const element = trigger.current;
+    const focusTarget =
+      element?.tagName === "BUTTON"
+        ? element
+        : (element
+            ?.closest('[role="region"]')
+            ?.querySelector<HTMLButtonElement>("button") ?? null);
+
     setItem(null);
-    requestAnimationFrame(() => trigger.current?.focus());
+    requestAnimationFrame(() => focusTarget?.focus());
   }, []);
 
   useEffect(() => {
     if (!item) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+
+    const body = document.body;
+    const previousOverflow = body.style.overflow;
+    const previousPadding = body.style.paddingRight;
+    const scrollbar = window.innerWidth - document.documentElement.clientWidth;
+
+    body.style.overflow = "hidden";
+    if (scrollbar > 0) body.style.paddingRight = `${scrollbar}px`;
+
     return () => {
-      document.body.style.overflow = previous;
+      body.style.overflow = previousOverflow;
+      body.style.paddingRight = previousPadding;
     };
   }, [item]);
 
@@ -90,74 +107,103 @@ function Overlay({ item, onClose }: { item: ZoomItem; onClose: () => void }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const closing = useRef(false);
-
+  const closeTimer = useRef<number | undefined>(undefined);
   const [size] = useState(() => targetBox(item.src));
 
+  const setRect = useCallback(
+    (rect: { top: number; left: number; width: number; height: number }) => {
+      const box = boxRef.current;
+      if (!box) return;
+      box.style.top = `${rect.top}px`;
+      box.style.left = `${rect.left}px`;
+      box.style.width = `${rect.width}px`;
+      box.style.height = `${rect.height}px`;
+    },
+    [],
+  );
+
+  const placeTarget = useCallback(() => {
+    setRect({
+      top: (window.innerHeight - size.height) / 2,
+      left: (window.innerWidth - size.width) / 2,
+      width: size.width,
+      height: size.height,
+    });
+  }, [setRect, size.height, size.width]);
+
+  const placeThumbnail = useCallback(() => {
+    setRect(item.from);
+  }, [item.from, setRect]);
+
   useLayoutEffect(() => {
+    closeRef.current?.focus();
+
+    if (prefersReducedMotion()) {
+      placeTarget();
+      return;
+    }
+
     const box = boxRef.current;
     if (!box) return;
 
-    closeRef.current?.focus();
-
-    if (prefersReducedMotion()) return;
-
-    const { from } = item;
-    const dx = from.left + from.width / 2 - window.innerWidth / 2;
-    const dy = from.top + from.height / 2 - window.innerHeight / 2;
-    const scale = from.width / size.width;
-
     box.style.transition = "none";
-    box.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+    placeThumbnail();
 
     const frame = requestAnimationFrame(() => {
-      box.style.transition = `transform ${DURATION}ms ${EASING}`;
-      box.style.transform = "none";
+      box.style.transition = TRANSITION;
+      placeTarget();
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [item, size.width]);
+  }, [placeTarget, placeThumbnail]);
 
   const requestClose = useCallback(() => {
     if (closing.current) return;
     closing.current = true;
 
-    const box = boxRef.current;
-    if (!box || prefersReducedMotion()) {
+    if (prefersReducedMotion()) {
       onClose();
       return;
     }
 
-    const { from } = item;
-    const dx = from.left + from.width / 2 - window.innerWidth / 2;
-    const dy = from.top + from.height / 2 - window.innerHeight / 2;
-    const scale = from.width / size.width;
+    const box = boxRef.current;
+    if (!box) {
+      onClose();
+      return;
+    }
 
-    box.style.transition = `transform ${DURATION}ms ${EASING}`;
-    box.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
-  }, [item, onClose, size.width]);
+    box.style.transition = TRANSITION;
+    placeThumbnail();
+
+    if (closeTimer.current !== undefined) {
+      window.clearTimeout(closeTimer.current);
+    }
+    closeTimer.current = window.setTimeout(onClose, DURATION + 150);
+  }, [onClose, placeThumbnail]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimer.current !== undefined) {
+        window.clearTimeout(closeTimer.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
 
-    let done = false;
-    const finish = () => {
-      if (done || !closing.current) return;
-      done = true;
+    const onEnd = (event: TransitionEvent) => {
+      if (event.target !== box || !closing.current) return;
+      if (closeTimer.current !== undefined) {
+        window.clearTimeout(closeTimer.current);
+        closeTimer.current = undefined;
+      }
       onClose();
     };
 
-    const onEnd = (event: TransitionEvent) => {
-      if (event.propertyName === "transform") finish();
-    };
-
     box.addEventListener("transitionend", onEnd);
-    const fallback = window.setTimeout(finish, DURATION + 120);
-
-    return () => {
-      box.removeEventListener("transitionend", onEnd);
-      window.clearTimeout(fallback);
-    };
+    return () => box.removeEventListener("transitionend", onEnd);
   }, [onClose]);
 
   useEffect(() => {
@@ -189,8 +235,8 @@ function Overlay({ item, onClose }: { item: ZoomItem; onClose: () => void }) {
     >
       <div
         ref={boxRef}
-        className="fixed inset-0 m-auto"
-        style={{ width: size.width, height: size.height }}
+        className="fixed z-50 overflow-hidden"
+        style={{ top: 0, left: 0, width: 0, height: 0 }}
       >
         <Image
           src={item.src}
@@ -198,7 +244,7 @@ function Overlay({ item, onClose }: { item: ZoomItem; onClose: () => void }) {
           fill
           priority
           sizes="92vw"
-          className="object-contain"
+          className="object-cover"
         />
       </div>
 

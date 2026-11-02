@@ -67,7 +67,7 @@ export function Education() {
               src={image.src}
               alt={image.alt}
               sizes="(min-width: 640px) 25vw, 50vw"
-              className="h-32 w-48 shrink-0 rounded-md border border-line sm:h-auto sm:w-full"
+              className="h-32 w-48 shrink-0 rounded-md border border-line sm:aspect-[4/3] sm:h-auto sm:w-full"
             />
           ))}
         </div>

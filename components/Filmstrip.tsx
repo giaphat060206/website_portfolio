@@ -106,7 +106,8 @@ export function Filmstrip({ images, label }: FilmstripProps) {
     moved.current = false;
     pending.current = null;
     drag.current = { startX: event.clientX, startScroll: track.scrollLeft };
-    track.setPointerCapture(event.pointerId);
+    // Do NOT capture here: capture retargets the compatibility mouse events,
+    // so a plain click would never reach the slide's own button.
   }
 
   function onPointerMove(event: PointerEvent<HTMLDivElement>) {
@@ -117,6 +118,9 @@ export function Filmstrip({ images, label }: FilmstripProps) {
     const delta = event.clientX - state.startX;
     if (Math.abs(delta) <= DRAG_THRESHOLD) return;
 
+    if (!track.hasPointerCapture(event.pointerId)) {
+      track.setPointerCapture(event.pointerId);
+    }
     moved.current = true;
 
     const raw = state.startScroll - delta;
@@ -221,7 +225,7 @@ export function Filmstrip({ images, label }: FilmstripProps) {
             <ZoomableImage
               key={index}
               src={image.src}
-              alt={clone ? "" : image.alt}
+              alt={image.alt}
               decorative={clone}
               sizes="(min-width: 1024px) 28vw, (min-width: 640px) 50vw, 85vw"
               className={`shrink-0 rounded-lg border border-line ${

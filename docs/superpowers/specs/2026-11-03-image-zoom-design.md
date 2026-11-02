@@ -22,12 +22,12 @@ in the reel to fill the screen, and releasing it should put it back where it cam
 
 ## Motion
 
-Transform-based FLIP, not width/height animation:
-
-1. Measure the thumbnail's viewport rectangle.
-2. Render the image fixed and centred at its final size, then apply
-   `translate(dx, dy) scale(s)` so it visually sits exactly on the thumbnail.
-3. On the next frame, clear the transform with a 300ms `ease-out` transition.
+The box is positioned at the thumbnail's exact `top/left/width/height`, then transitioned
+to the centred 92vw × 92vh box over 300ms `ease-out`. Animating the box's own geometry
+rather than a transform is deliberate: the thumbnail is `object-cover` (cropped) while the
+expanded view shows the whole frame, so a pure scale would start from the wrong shape. At
+the target size the box's aspect equals the image's natural aspect, so `object-cover` shows
+the full image.
 
 Closing runs the reverse. `prefers-reduced-motion: reduce` skips both frames and swaps instantly.
 
@@ -40,6 +40,8 @@ Closing runs the reverse. `prefers-reduced-motion: reduce` skips both frames and
   `<div>`s.
 - The close button is reachable and visible against the dark backdrop.
 - Alt text is announced exactly once, on the dialog, not duplicated on the image.
+- Looped clone slides stay clickable but render as `aria-hidden` non-focusable wrappers,
+  so each screenshot is announced once while mouse users can click any copy.
 
 ## Constraints
 

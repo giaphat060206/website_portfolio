@@ -8,6 +8,10 @@ type ZoomableImageProps = {
   alt: string;
   className?: string;
   sizes?: string;
+  /**
+   * Looped clone: clickable, but hidden from assistive tech and skipped by the
+   * keyboard. The original slide is the single announced control.
+   */
   decorative?: boolean;
 };
 
@@ -20,21 +24,35 @@ export function ZoomableImage({
 }: ZoomableImageProps) {
   const { open } = useLightbox();
 
+  const image = (
+    <Image
+      src={src}
+      alt={decorative ? "" : alt}
+      sizes={sizes}
+      draggable={false}
+      className="h-full w-full select-none object-cover"
+    />
+  );
+
+  if (decorative) {
+    return (
+      <div
+        aria-hidden="true"
+        onClick={(event) => open(src, alt, event.currentTarget)}
+        className={`block cursor-zoom-in overflow-hidden ${className}`}
+      >
+        {image}
+      </div>
+    );
+  }
+
   return (
     <button
       type="button"
-      aria-hidden={decorative || undefined}
-      tabIndex={decorative ? -1 : 0}
       onClick={(event) => open(src, alt, event.currentTarget)}
       className={`block cursor-zoom-in overflow-hidden ${className}`}
     >
-      <Image
-        src={src}
-        alt={alt}
-        sizes={sizes}
-        draggable={false}
-        className="h-full w-full select-none object-cover"
-      />
+      {image}
     </button>
   );
 }
