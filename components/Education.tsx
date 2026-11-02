@@ -1,6 +1,6 @@
-import Image from "next/image";
 import { cv } from "@/data/cv";
 import { Section } from "@/components/Section";
+import { ZoomableImage } from "@/components/ZoomableImage";
 import champion from "@/app/assets/images/hack-a-venture 2025/champion.webp";
 import interview from "@/app/assets/images/hack-a-venture 2025/interview.webp";
 import photoReport from "@/app/assets/images/hack-a-venture 2025/photo-report.webp";
@@ -62,12 +62,12 @@ export function Education() {
         </p>
         <div className="mt-4 flex gap-3 overflow-x-auto sm:grid sm:grid-cols-2 sm:overflow-visible">
           {gallery.map((image) => (
-            <Image
+            <ZoomableImage
               key={image.alt}
               src={image.src}
               alt={image.alt}
               sizes="(min-width: 640px) 25vw, 50vw"
-              className="aspect-[4/3] h-32 w-48 shrink-0 rounded-md border border-line object-cover sm:h-auto sm:w-full"
+              className="h-32 w-48 shrink-0 rounded-md border border-line sm:h-auto sm:w-full"
             />
           ))}
         </div>

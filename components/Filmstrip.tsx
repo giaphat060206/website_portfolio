@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import {
   useEffect,
   useRef,
@@ -9,6 +8,7 @@ import {
   type PointerEvent,
 } from "react";
 import type { ProjectImage } from "@/data/projectImages";
+import { ZoomableImage } from "@/components/ZoomableImage";
 
 type FilmstripProps = { images: ProjectImage[]; label: string };
 
@@ -48,7 +48,6 @@ export function Filmstrip({ images, label }: FilmstripProps) {
     if (!track) return;
 
     if (!loops) {
-      track.tabIndex = -1;
       track.dataset.scrollable = "false";
       return;
     }
@@ -66,7 +65,6 @@ export function Filmstrip({ images, label }: FilmstripProps) {
     };
 
     place(true);
-    track.tabIndex = 0;
     track.dataset.scrollable = "true";
 
     const observer = new ResizeObserver(() => place(false));
@@ -220,13 +218,13 @@ export function Filmstrip({ images, label }: FilmstripProps) {
             (index < images.length || index >= images.length * 2);
 
           return (
-            <Image
+            <ZoomableImage
               key={index}
               src={image.src}
               alt={clone ? "" : image.alt}
-              aria-hidden={clone || undefined}
-              draggable={false}
-              className={`shrink-0 select-none rounded-lg border border-line object-cover ${
+              decorative={clone}
+              sizes="(min-width: 1024px) 28vw, (min-width: 640px) 50vw, 85vw"
+              className={`shrink-0 rounded-lg border border-line ${
                 image.wide ? "aspect-[2/1]" : "aspect-[4/3]"
               } ${
                 images.length === 1
