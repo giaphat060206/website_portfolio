@@ -39,6 +39,36 @@ body {
   outline-offset: 3px;
 }
 
+/*
+ * Filmstrip depth.
+ *
+ * Filmstrip.tsx writes three numbers on every slide: --t (signed distance
+ * from the middle of the strip, −1 = left edge, 0 = centred, 1 = right
+ * edge), --d (its clamped magnitude) and --e (its distance before that
+ * clamp). The centre slide sits at full size and sharpness; the further a
+ * slide drifts to either side the smaller, dimmer and blurrier it gets,
+ * while lifting up and turning away from the viewer.
+ *
+ * `--b` is the blur amount: zero until a slide's centre is 85% of the way
+ * to the strip edge, then ramping in over the next 0.65 of travel. Raising
+ * `0.85` keeps the strip sharp for longer; lowering it blurs sooner.
+ */
+.filmstrip-slide {
+  --t: 0;
+  --d: 0;
+  --e: 0;
+  --b: clamp(0, calc((var(--e) - 0.85) / 0.65), 1);
+
+  transform: translate3d(0, calc(var(--d) * var(--d) * -16px), 0)
+    rotateY(calc(var(--t) * 10deg))
+    scale(calc(1.05 - var(--d) * 0.19));
+  opacity: calc(1 - var(--d) * 0.32);
+  filter: blur(calc(var(--b) * 3px)) brightness(calc(1 - var(--d) * 0.28))
+    saturate(calc(1 - var(--d) * 0.18));
+  transform-origin: 50% 50%;
+  backface-visibility: hidden;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

@@ -115,6 +115,29 @@ export const cv: Cv = {
       source: "https://github.com/giaphat060206/SyntaxScalpel",
     },
     {
+      slug: "neo-messenger",
+      title: "NEO Messenger Clone",
+      role: "Full Stack Developer",
+      bullets: [
+        "Built a responsive community messaging platform supporting direct and group conversations, real-time text and image messaging, emoji reactions, typing indicators, and online presence.",
+        "Implemented authentication, profile and settings management, group administration, and 24-hour photo stories with view tracking using Supabase Auth, PostgreSQL, Realtime, Storage, and Row Level Security.",
+      ],
+      tags: ["React", "TypeScript", "Supabase"],
+      source: "https://github.com/rmit-nct/Messenger-Clone",
+    },
+    {
+      slug: "fin-recruit",
+      title: "Fin-Recruit",
+      role: "Fullstack Developer",
+      bullets: [
+        "Developed a centralized recruitment management platform to streamline club hiring workflows and replace fragmented manual Excel-based processes.",
+        "Built the application using Next.js App Router, TypeScript, and Tailwind CSS, with MongoDB and Mongoose for data persistence and NextAuth.js for authentication.",
+      ],
+      tags: ["React", "Next.js", "TypeScript", "Tailwind", "MongoDB"],
+      source: "https://github.com/rmitvietnamfintechclub/FinRecruit",
+      live: "https://fin-recruit.vercel.app",
+    },
+    {
       slug: "tictactoang",
       title: "TicTacToang",
       role: "Frontend Developer",

@@ -14,6 +14,8 @@ type FilmstripProps = { images: ProjectImage[]; label: string };
 
 type DragState = { startX: number; startScroll: number };
 
+type DepthGeometry = { width: number; centers: number[] };
+
 const DRAG_THRESHOLD = 6;
 const COPIES = 4;
 const KEYBOARD_SETTLE_MS = 600;
@@ -30,6 +32,50 @@ function wrapInto(value: number, period: number) {
   return period + ((((value - period) % period) + period) % period);
 }
 
+/**
+ * Layout centre of every slide in the track's scrollable coordinates. Read
+ * from `offsetLeft`/`offsetWidth`, not `getBoundingClientRect`, because the
+ * rect would include the very transform we are about to apply and feed back
+ * into itself.
+ */
+function readGeometry(track: HTMLDivElement): DepthGeometry {
+  return {
+    width: track.clientWidth,
+    centers: Array.from(track.children, (child) => {
+      const slide = child as HTMLElement;
+      return slide.offsetLeft + slide.offsetWidth / 2;
+    }),
+  };
+}
+
+/**
+ * Writes each slide's distance from the centre of the strip as custom
+ * properties: `--t` is the signed, clamped position (−1 left edge … 0
+ * centred … 1 right edge), `--d` is its magnitude, and `--e` is the distance
+ * before that clamp (capped at 2). `--e` lets the blur start only once a
+ * slide is on its way out of the strip, so the visible strip stays in focus.
+ */
+function applyDepth(track: HTMLDivElement, geometry: DepthGeometry) {
+  const half = geometry.width / 2;
+  if (half <= 0) return;
+
+  const viewportCenter = track.scrollLeft + half;
+  const count = Math.min(track.children.length, geometry.centers.length);
+
+  for (let index = 0; index < count; index += 1) {
+    const slide = track.children[index] as HTMLElement;
+    const position = (geometry.centers[index] - viewportCenter) / half;
+    const offset = Math.max(-1, Math.min(1, position));
+    const depth = Math.abs(offset);
+    const reach = Math.min(2, Math.abs(position));
+
+    slide.style.setProperty("--t", offset.toFixed(3));
+    slide.style.setProperty("--d", depth.toFixed(3));
+    slide.style.setProperty("--e", reach.toFixed(3));
+    slide.style.zIndex = String(Math.round((1 - depth) * 10));
+  }
+}
+
 export function Filmstrip({ images, label }: FilmstripProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const drag = useRef<DragState | null>(null);
@@ -37,6 +83,8 @@ export function Filmstrip({ images, label }: FilmstripProps) {
   const settleUntil = useRef(0);
   const settleTimer = useRef<number | undefined>(undefined);
   const pending = useRef<number | null>(null);
+  const geometry = useRef<DepthGeometry | null>(null);
+  const depthFrame = useRef<number | undefined>(undefined);
 
   const loops = images.length >= 2;
   const slides = loops
@@ -47,27 +95,44 @@ export function Filmstrip({ images, label }: FilmstripProps) {
     const track = trackRef.current;
     if (!track) return;
 
-    if (!loops) {
-      track.dataset.scrollable = "false";
-      return;
-    }
+    const refresh = () => {
+      geometry.current = readGeometry(track);
+      applyDepth(track, geometry.current);
+    };
 
     const place = (home: boolean) => {
       const period = periodOf(track, images.length);
       if (period <= 0) return;
 
       if (home) {
-        track.scrollLeft = period;
+        const first = track.children[0] as HTMLElement | undefined;
+        const width = first?.offsetWidth ?? 0;
+        // Open with the first screenshot centred so the depth falloff is
+        // visible on both sides instead of a slide pinned to the left edge.
+        track.scrollLeft = wrapInto(
+          period + width / 2 - track.clientWidth / 2,
+          period,
+        );
         return;
       }
 
       track.scrollLeft = wrapInto(track.scrollLeft, period);
     };
 
+    if (!loops) {
+      track.dataset.scrollable = "false";
+      refresh();
+      return;
+    }
+
     place(true);
     track.dataset.scrollable = "true";
+    refresh();
 
-    const observer = new ResizeObserver(() => place(false));
+    const observer = new ResizeObserver(() => {
+      place(false);
+      refresh();
+    });
     observer.observe(track);
     return () => observer.disconnect();
   }, [loops, images.length]);
@@ -77,8 +142,25 @@ export function Filmstrip({ images, label }: FilmstripProps) {
       if (settleTimer.current !== undefined) {
         window.clearTimeout(settleTimer.current);
       }
+      if (depthFrame.current !== undefined) {
+        window.cancelAnimationFrame(depthFrame.current);
+      }
     };
   }, []);
+
+  function syncDepth() {
+    const track = trackRef.current;
+    if (!track || !geometry.current) return;
+    applyDepth(track, geometry.current);
+  }
+
+  function scheduleDepth() {
+    if (depthFrame.current !== undefined) return;
+    depthFrame.current = window.requestAnimationFrame(() => {
+      depthFrame.current = undefined;
+      syncDepth();
+    });
+  }
 
   function normalize() {
     const track = trackRef.current;
@@ -128,6 +210,7 @@ export function Filmstrip({ images, label }: FilmstripProps) {
 
     if (period <= 0) {
       track.scrollLeft = raw;
+      scheduleDepth();
       return;
     }
 
@@ -136,6 +219,7 @@ export function Filmstrip({ images, label }: FilmstripProps) {
     const wrapped = wrapInto(raw, period);
     state.startScroll += wrapped - raw;
     track.scrollLeft = wrapped;
+    scheduleDepth();
   }
 
   function onPointerEnd(event: PointerEvent<HTMLDivElement>) {
@@ -186,6 +270,7 @@ export function Filmstrip({ images, label }: FilmstripProps) {
     settleUntil.current = Date.now() + KEYBOARD_SETTLE_MS;
 
     track.scrollTo({ left: target, behavior: reduced ? "auto" : "smooth" });
+    scheduleDepth();
     event.preventDefault();
 
     if (settleTimer.current !== undefined) {
@@ -204,7 +289,10 @@ export function Filmstrip({ images, label }: FilmstripProps) {
         ref={trackRef}
         role="region"
         aria-label={`${label} screenshots`}
-        onScroll={normalize}
+        onScroll={() => {
+          normalize();
+          scheduleDepth();
+        }}
         onWheel={() => {
           pending.current = null;
         }}
@@ -214,7 +302,7 @@ export function Filmstrip({ images, label }: FilmstripProps) {
         onPointerCancel={onPointerEnd}
         onClickCapture={onClickCapture}
         onKeyDown={onKeyDown}
-        className="flex gap-4 overflow-x-auto pb-2 [scrollbar-width:none] data-[scrollable=true]:cursor-grab data-[scrollable=true]:active:cursor-grabbing [&::-webkit-scrollbar]:hidden"
+        className="relative flex items-center gap-4 overflow-x-auto overflow-y-hidden py-6 [perspective:1200px] [scrollbar-width:none] data-[scrollable=true]:cursor-grab data-[scrollable=true]:active:cursor-grabbing [&::-webkit-scrollbar]:hidden"
       >
         {slides.map((image, index) => {
           const clone =
@@ -227,13 +315,13 @@ export function Filmstrip({ images, label }: FilmstripProps) {
               src={image.src}
               alt={image.alt}
               decorative={clone}
-              sizes="(min-width: 1024px) 28vw, (min-width: 640px) 50vw, 85vw"
-              className={`shrink-0 rounded-lg border border-line ${
+              sizes="(min-width: 768px) 31vw, (min-width: 640px) 52vw, 86vw"
+              className={`${loops ? "filmstrip-slide" : ""} shrink-0 rounded-lg border border-line ${
                 image.wide ? "aspect-[2/1]" : "aspect-[4/3]"
               } ${
                 images.length === 1
                   ? "w-full"
-                  : "w-[85%] sm:w-[55%] lg:w-[44%]"
+                  : "w-[86%] sm:w-[60%] lg:w-[75%]"
               }`}
             />
           );

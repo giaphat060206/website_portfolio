@@ -93,3 +93,45 @@ Autoplay · snapping to slides · momentum simulation beyond native scrolling.
 
 Exact column ratio, image width fraction, gap, and mask strength — tuned by eye at 360px, 768px,
 and 1440px.
+
+## Amendment: depth (2026-11-03)
+
+The strip is no longer a flat row. Each slide is a plane in a shallow 3D scene, and its distance
+from the middle of the strip decides how it is drawn.
+
+- **Centred**: full size, sharp, fully opaque.
+- **Towards either edge**: the slide shrinks, lifts up, turns away from the viewer, dims and
+  blurs. The falloff is continuous — dragging a screenshot out of the middle grows it and brings
+  it into focus, dragging it away pushes it back.
+- **Blur starts later than the rest of the falloff.** The strip stays sharp until a slide is 85%
+  of the way to the edge, then softens over the last stretch. Only what is genuinely leaving the
+  strip goes out of focus, so the unblurred area covers most of the visible strip.
+- The track opens with a screenshot centred rather than flush against the left edge, so both
+  sides of the falloff are visible on arrival.
+- Slides are wider: `56%` of the track at `lg`, `60%` at `sm`, `86%` on phones. The focused
+  screenshot is roughly a third larger than before.
+- A single-screenshot project is left alone: there is nothing to bring into focus.
+
+**How it is built**
+
+- `Filmstrip.tsx` measures each slide's layout centre once per resize and reads its position from
+  `scrollLeft` on every frame, writing `--t` (signed distance, −1…1), `--d` (clamped magnitude,
+  0…1) and `--e` (unclamped distance) onto the slide.
+- Scale, lift, dim and rotation read `--d`; blur reads `--e` through `--b`, a clamped ramp that
+  is zero until `0.85` and reaches full at `1.5`. Raising `0.85` widens the sharp band; lowering
+  it blurs sooner.
+- The look itself lives in `.filmstrip-slide` in `app/globals.css`, so scale, lift, rotation,
+  dim and blur can be tuned without touching the scroll code.
+- The track centres its slides vertically (`items-center`) so each slide's aspect ratio sets its
+  height. A `wide` screenshot (16:9/2:1) therefore renders shorter than a 4:3 one instead of
+  being stretched to the tallest slide and cropped.
+- Geometry comes from `offsetLeft`/`offsetWidth`, never `getBoundingClientRect`: the rect would
+  include the transform being applied and feed back into itself.
+- Updates are batched into one `requestAnimationFrame`, and the existing wrap still jumps by a
+  whole set, so the depth pattern is identical on both sides of the seam.
+
+**Non-goals**
+
+Snapping or autoplay · a per-slide height change · hiding the side screenshots entirely — they
+stay clickable.
+
