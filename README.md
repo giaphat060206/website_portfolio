@@ -42,11 +42,16 @@ Open <http://localhost:3000>.
 ## Scripts
 
 ```bash
-npm run dev      # dev server with hot reload
-npm run build    # static production build, written to out/
-npm run lint     # eslint
-npx tsc --noEmit # typecheck
+npm run dev       # dev server with hot reload
+npm run build     # static production build, written to out/
+npm run lint      # eslint
+npm run typecheck # generate Next route types, then run tsc --noEmit
 ```
+
+Next generates `next-env.d.ts` and the route types in `.next/` when you run `next dev`,
+`next build`, or `next typegen`. On a fresh checkout those files do not exist yet, so plain
+`npx tsc --noEmit` fails on `LayoutProps` and image imports — use `npm run typecheck`, which
+runs `next typegen` first. The CI workflow does the same.
 
 `next start` does not work with a static export, so `npm start` is not used. To preview
 the production build:
